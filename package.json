@@ -1,6 +1,6 @@
 {
   "name": "carbdot",
-  "version": "0.0.0",
+  "version": "1.0.0-alpha",
   "author": "Yiyoung Liu",
   "description": "bot to play card games",
   "main": "/build/index.js",
@@ -10,6 +10,10 @@
     "start:bot": "npm run build && node ./build/index.js"
   },
   "dependencies": {
-    "discord.js": "^14.14.1"
+    "discord.js": "^14.14.1",
+    "mongoose": "^8.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
   }
 }

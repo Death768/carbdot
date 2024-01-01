@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from "discord.js";
 
 export interface Command {
-	data: SlashCommandBuilder;
+	data: Pick<SlashCommandBuilder, 'name' | 'toJSON'>;
 	execute: (interaction : ApplicationCommand) => void;
 }
 

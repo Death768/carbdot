@@ -6,7 +6,7 @@ import { Command } from '../types';
 import { token, clientID } from '../../config.json';
 
 module.exports = (client: Client) => {
-	const commands: SlashCommandBuilder[] = [];
+	const commands: Pick<SlashCommandBuilder, 'name' | 'toJSON'>[] = [];
 
 	let commandsDir = join(__dirname, '../commands');
 
