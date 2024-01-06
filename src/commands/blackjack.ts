@@ -1,8 +1,7 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, AttachmentBuilder } from 'discord.js';
 import { Command } from '../types';
 import { Cards } from '../Cards';
 import blackjack from '../schemas/blackjackSchema';
-
 class Hand {
 	hand: Cards.Card[];
 	status: string;
@@ -10,38 +9,37 @@ class Hand {
 		this.hand = hand;
 		this.status = status;
 	}
-
-}
-
-function getBlackjackValue(card : Cards.Card) {
-	if(card.value > 10) {
-		return 10;
-	} else if(card.value === 1) {
-		return 11;
-	} else {
-		return card.value;
+	static getBlackjackValue(card : Cards.Card) {
+		if(card.value > 10) {
+			return 10;
+		} else if(card.value === 1) {
+			return 11;
+		} else {
+			return card.value;
+		}
+	}
+	calculateHandScore() {
+		let score = 0;
+		this.hand.forEach(card => {
+			score += Hand.getBlackjackValue(card);
+		});
+		this.hand.forEach(card => {
+			if(card.value === 1 && score > 21) {
+				score -= 10;
+			}
+		});
+		return score;
 	}
 }
 
-function calculateHandScore(hand : Cards.Card[]) {
-	let score = 0;
-	hand.forEach(card => {
-		score += getBlackjackValue(card);
-	});
-	hand.forEach(card => {
-		if(card.value === 1 && score > 21) {
-			score -= 10;
-		}
-	});
-	return score;
-}
+
 
 function runDealer(hand : Hand, deck : Cards.Deck) {
 	let dealerHand = hand;
-	let dealerScore = calculateHandScore(dealerHand.hand);
+	let dealerScore = dealerHand.calculateHandScore();
 	while(dealerScore < 17) {
 		dealerHand.hand.push(deck.draw());
-		dealerScore = calculateHandScore(dealerHand.hand);
+		dealerScore = dealerHand.calculateHandScore();
 	}
 	if(dealerScore > 21) {
 		dealerHand.status = 'bust';
@@ -73,10 +71,6 @@ const command: Command = {
 						.addChoices({ name: 'Double Down', value: 'double_down' })
 						.addChoices({ name: 'Split', value: 'split' })
 						.addChoices({ name: 'Surrender', value: 'surrender' })))
-		/*.addSubcommand(subcommand =>
-			subcommand
-				.setName('insurance')
-				.setDescription('Buy insurance!'))*/
 		.addSubcommand(subcommand =>
 			subcommand
 				.setName('viewgame')
@@ -91,7 +85,7 @@ const command: Command = {
 			}).then(data => {
 				if(data) return interaction.editReply({ content: 'You already have a game in progress!', ephemeral: true });
 
-				const deck = new Cards.Deck();											//remember to change deck size to 8 once you introduce replaying with same thing
+				const deck = new Cards.Deck();											//remember to change deck size to 8 once you introduce replaying with same game
 				deck.shuffle();
 
 				let playercard1 = deck.draw();
@@ -149,7 +143,7 @@ const command: Command = {
 				if (interaction.options.getString('move') === 'hit') {
 					let newCard = deck.draw();
 					currentHand.hand.push(newCard);
-					currentHand.status = calculateHandScore(currentHand.hand) > 21 ? 'bust' : 'in_play';
+					currentHand.status = currentHand.calculateHandScore() > 21 ? 'bust' : 'in_play';
 
 					await data.updateOne({
 						$set: {
@@ -174,7 +168,7 @@ const command: Command = {
 				} else if (interaction.options.getString('move') === 'double_down') {
 					let newCard = deck.draw();
 					currentHand.hand.push(newCard);
-					currentHand.status = calculateHandScore(currentHand.hand) > 21 ? 'double_down_bust' : 'double_down';
+					currentHand.status = currentHand.calculateHandScore() > 21 ? 'double_down_bust' : 'double_down';
 
 					await data.updateOne({
 						$set: {
@@ -189,7 +183,7 @@ const command: Command = {
 				} else if (interaction.options.getString('move') === 'split') {
 					console.log(currentHand.hand, currentHandID);
 					if (currentHand.hand.length !== 2) return interaction.editReply({ content: `You cannot split this hand!`, ephemeral: true });
-					if (getBlackjackValue(currentHand.hand[0]) !== getBlackjackValue(currentHand.hand[1])) return interaction.editReply({ content: `You cannot split this hand!`, ephemeral: true });
+					if (Hand.getBlackjackValue(currentHand.hand[0]) !== Hand.getBlackjackValue(currentHand.hand[1])) return interaction.editReply({ content: `You cannot split this hand!`, ephemeral: true });
 
 					let newCard = deck.draw();
 					let newCard2 = deck.draw();
@@ -252,13 +246,13 @@ const command: Command = {
 					if(!allHandsBust) {
 						dealerHand = runDealer(dealerHand, deck);
 					}
-					let dealerScore = calculateHandScore(dealerHand.hand);
+					let dealerScore = dealerHand.calculateHandScore();
 
 					let retString = ``;
 					let playerScore = 0;
 					data.player_hand.forEach(hand => {
 						let parsedHand = JSON.parse(JSON.stringify(hand));
-						let handScore = calculateHandScore(parsedHand.hand);
+						let handScore = parsedHand.calculateHandScore();
 						retString += `Your hand: `;
 						parsedHand.hand.forEach((card: any) => {
 							const parsedCard = JSON.parse(JSON.stringify(card));
@@ -268,29 +262,15 @@ const command: Command = {
 						retString += `Score: ${handScore}\n`;
 						retString += `Status: ${hand.status}\n`;
 
-						if(hand.status === 'bust') {
-							playerScore -= 1;
-						} else if(hand.status === 'blackjack') {
-							playerScore += 1.5;
-						} else if(hand.status === 'stand') {
-							if(dealerHand.status === 'bust') {
-								playerScore += 1;
-							} else if(dealerScore > handScore) {
-								playerScore -= 1;
-							} else if(dealerScore < handScore) {
-								playerScore += 1;
-							}
-						} else if(hand.status === 'double_down') {
-							if(dealerHand.status === 'bust') {
-								playerScore += 2;
-							} else if(dealerScore > handScore) {
-								playerScore -= 2;
-							} else if(dealerScore < handScore) {
-								playerScore += 2;
-							}
-						} else if(hand.status === 'surrender') {
-							playerScore -= 0.5;
-						}
+						const pointMap = new Map<string, number>([
+							['bust', -1],
+							['blackjack', 1.5],
+							['stand', dealerHand.status === 'bust' ? 1 : dealerScore > handScore ? -1 : dealerScore < handScore ? 1 : 0],
+							['double_down', dealerHand.status === 'bust' ? 2 : dealerScore > handScore ? -2 : dealerScore < handScore ? 2 : 0],
+							['surrender', -0.5]
+						]);
+
+						playerScore += pointMap.get(hand.status as string) ?? 0;
 					});
 
 					retString += `Dealer's hand: `;
@@ -314,26 +294,9 @@ const command: Command = {
 					await interaction.followUp({ content: retString, ephemeral: false });
 				}
 			});
-		} /*else if(interaction.options.getSubcommand() === 'insurance') {
-			await interaction.reply({ content: 'Buying insurance...', ephemeral: true });
-
-			await blackjack.findOne({
-				user_id: interaction.user.id,
-				guild_id: interaction.guild.id
-			}).then(data => {
-				if(!data) return interaction.editReply({ content: 'You do not have a game in progress!', ephemeral: true });
-				if(data.insurance) return interaction.editReply({ content: 'You have already bought insurance!', ephemeral: true });
-				data.player_hand.forEach(hand => {
-					if(hand.status !== 'in_play') return interaction.editReply({ content: 'You have already made a move!', ephemeral: true });
-				});
-				if(JSON.parse(JSON.stringify(data.dealer_hand?.hand[0])).value !== 1) return interaction.editReply({ content: 'The dealer does not have an ace!', ephemeral: true });
-
-				data.insurance = true;
-				data.save().catch(err => console.log(err));
-				return interaction.editReply({ content: 'You have bought insurance!', ephemeral: true });
-			});
-		} */else if(interaction.options.getSubcommand() === 'viewgame') {
+		} else if(interaction.options.getSubcommand() === 'viewgame') {
 				await interaction.reply({ content: 'Finding game...', ephemeral: true });
+
 				await blackjack.findOne({
 					user_id: interaction.user.id,
 					guild_id: interaction.guild.id
@@ -377,9 +340,7 @@ const command: Command = {
 						retString += `status: ${data.dealer_hand?.status}\n`;
 					}
 
-					//retString += `Insurance: ${data.insurance}\n`;
-
-					return interaction.editReply({ content: retString, ephemeral: true });
+					return 0; //TODO: return the html image
 				});
 		}
 	},

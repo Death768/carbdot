@@ -5,7 +5,7 @@
   "description": "bot to play card games",
   "main": "/build/index.js",
   "scripts": {
-    "build": "rm -rf ./build && tsc",
+    "build": "rm -rf ./build && tsc && cp -r ./src/assets/ ./build/assets/ && cp -r ./src/html/ ./build/html/",
     "start": "npm run start:bot",
     "start:bot": "npm run build && node ./build/index.js"
   },
