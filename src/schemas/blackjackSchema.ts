@@ -1,28 +1,45 @@
 import mongoose from 'mongoose';
+import blackjack from '../games/blackjack';
 
-const blackjackSchema = new mongoose.Schema({
+interface IBlackjack {
+	user_id: string;
+	guild_id: string;
+	game: blackjack.blackjackGame;
+}
+
+const blackjackGameSchema = new mongoose.Schema<IBlackjack>({
 	user_id: String,
 	guild_id: String,
-	deck: Object,
-	player_hand: [{
-		hand: [Object],
-		status: {
-			type: String,
-			enum: ['in_play', 'stand', 'double_down', 'double_down_bust', 'bust', 'blackjack', 'surrender']
+	game: {
+		deck: {
+			cards: [{
+				suit: String,
+				value: Number
+			}],
+			drawnCards: [{
+				suit: String,
+				value: Number
+			}]
 		},
-	}],
-	dealer_hand: {
-		hand: [Object],
-		status: {
-			type: String,
-			enum: ['not_shown', 'bust', 'stand', 'blackjack']
-		}
-	},
-	insurance: {
-		type: Boolean,
-		default: false
-	},
+		player_hand: [{
+			hand: [{
+				suit: String,
+				value: Number
+			}],
+			status: String
+		}],
+		dealer_hand: {
+			hand: [{
+				suit: String,
+				value: Number
+			}],
+			status: String
+		},
+		insurance: Boolean
+
+	}
 });
 
-const blackjack = mongoose.model('blackjack', blackjackSchema);
-export default blackjack;
+const blackjackGame = mongoose.model<IBlackjack>('blackjackGame', blackjackGameSchema);
+
+export default blackjackGame;

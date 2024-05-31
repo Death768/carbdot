@@ -10,11 +10,11 @@
     "start:bot": "npm run build && node ./build/index.js"
   },
   "dependencies": {
-    "discord.js": "^14.14.1",
-    "mongoose": "^8.0.3",
+    "discord.js": "^14.15.2",
+    "mongoose": "^8.4.0",
     "node-html-to-image": "^4.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.3.3"
+    "typescript": "^5.4.5"
   }
 }

@@ -3,26 +3,22 @@ module Cards {
 		cards: Card[] = [];
 		drawnCards: Card[] = [];
 
-		constructor(deckSize : number = 1) {
+		constructor(deckSize : number);
+		constructor(deckSize : undefined, cards : Card[], drawnCards : Card[]);
+		constructor(deckSize = 1, cards? : Card[], drawnCards? : Card[]) {
+			if(cards !== undefined) {
+				this.cards = cards;
+				this.drawnCards = drawnCards!;
+				return;
+			}
 			for(let i = 0; i < deckSize; i++) {
 				const suits = ["Spades", "Hearts", "Diamonds", "Clubs"];
 				for (let suit of suits) {
 					for (let i = 1; i <= 13; i++) {
 						this.cards.push(new Card(suit, i));
-					}
+						}
 				}
 			}
-		}
-
-		static castFromMongoose(obj: { cards: { suit: string, value: number }[], drawnCards: { suit: string, value: number }[]  }) {
-			const deck : Deck = new Deck(0);
-			obj.cards.forEach(card => {
-				deck.cards.push(new Card(card.suit, card.value));
-			});
-			obj.drawnCards.forEach(card => {
-				deck.drawnCards.push(new Card(card.suit, card.value));
-			});
-			return deck;
 		}
 
 		shuffle() {
@@ -47,6 +43,13 @@ module Cards {
 			const cardDict = new Map([ [1, "Ace"], [2, "Two"], [3, "Three"], [4, "Four"], [5, "Five"], [6, "Six"], [7, "Seven"], [8, "Eight"], [9, "Nine"], [10, "Ten"], [11, "Jack"], [12, "Queen"], [13, "King"] ]);
 			let name = cardDict.get(this.value);
 			return `${name} of ${this.suit}`;
+		}
+		getCardPNG(shown = true) {
+			if (!shown) {
+				return "assets/CardBack.png";
+			}
+			const formattedSuit = this.suit.substring(0, 1).toUpperCase() + this.suit.substring(1).toLowerCase();
+			return `assets/${formattedSuit}${this.value}.png`;
 		}
 	}
 }
